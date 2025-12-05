@@ -13,7 +13,7 @@ Your task is:
 
 - Clone the repository to your GitHub account (you can make it private).
 - Finish the task. It should be runnable in Docker compose.
-- Send us the link to the repository at jobs@corca.io, or send us a zip archive of the repository if
+- Send us the link to the repository at engintern@corca.io, or send us a zip archive of the repository if
   it is private.
 - After we review the result we will reach out to you and schedule a follow-up call. On this call we
   will ask additional questions related to this task and ask you to add more functionality.
