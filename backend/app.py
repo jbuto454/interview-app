@@ -30,30 +30,44 @@ def create_app() -> Flask:
         #What if there are multiple solutions?
         #How should you format the result?
 
-        #convert the string into a sympy expression
-        expr = sympify(equation)
+        try:
+            #convert the string into a sympy expression
+            expr = sympify(equation)
+        except TypeError:
+            return jsonify({"error": "Invalid 'equation' query parameter"}), 400
+
+        if expr is None:
+            return jsonify({"error": "Invalid 'equation' query parameter"}), 400
+
+        #if the expression is just a number, return that number back
+        if expr.is_number:
+            return jsonify({"result": str(expr)})
 
         #if the expression is simple, meaning that it has no variables, we can solve it right away and return
         if expr.expr_free_symbols == set():
-            solution = expr.evalf()
-            return jsonify({"result": str(solution)})
+            try:
+                solution = expr.evalf()
+                return jsonify({"result": str(solution)})
+            except NotImplementedError:
+                return jsonify({"error": "Equation cannot be solved"}), 400
 
-        # Parse the equation string the user sent and check if there are any variables in the expression
-        # check if its a differential equation
+        # check if we have an algebraic expression
+        elif expr.is_algebraic:
+            symbol_set = expr.expr_free_symbols
+            symbol_list = list(symbol_set)
+            try:
+                solution = solve(expr, symbol_list, dict=True)
+                return jsonify({"result": str(solution)})
+            except NotImplementedError:
+                return jsonify({"error": "Equation cannot be solved"}), 400
+
         # check if its a polynomial equation
-        # check if its a Diophantine Equation
-
-        #if the expression is simple and doesn't involve variables that we need to solve for (i.e. 2*2)
-        expr.evalf() #we can return this value
-
-        #if there are variables that we need to solve for, and it's an algebric expression
-        solve(x**4 - 256, x, dict=True)
-
-        # if its a differential equation
-
-        # if its a polynomial equation
-
-        # if its a Diophantine Equation
+        elif expr.is_polynomial():
+            try:
+                solution = expr.allroots()
+                return jsonify({"result": str(solution)})
+            except NotImplementedError:
+                return jsonify({"error": "Equation cannot be solved"}), 400
 
 
         return jsonify({"result": f"not implemented: solving '{equation}'"})
