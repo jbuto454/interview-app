@@ -22,7 +22,26 @@ def create_app() -> Flask:
         equation = (request.args.get("equation") or "").strip()
         if not equation:
             return jsonify({"error": "Missing 'equation' query parameter"}), 400
+
+        #A few things to think about:
+
+        #What if the user sends an invalid equation?
+        #What if the equation has no solution?
+        #What if there are multiple solutions?
+        #How should you format the result?
+
+        #Parse the equation string the user sent
+
+        #Use sympy to solve it
+
+        #Format the solution(s)
+
+        #Return them in the JSON response
+
+
         return jsonify({"result": f"not implemented: solving '{equation}'"})
+
+
 
     @app.route("/", methods=["GET"])
     def root():
