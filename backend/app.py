@@ -29,14 +29,39 @@ def create_app() -> Flask:
         #What if the equation has no solution?
         #What if there are multiple solutions?
         #How should you format the result?
+        clean_equation = ""
+        previous_value = ""
+        has_equals = False
+        left_side = ""
+        right_side = ""
 
-        try:
-            #convert the string into a sympy expression
-            expr = sympify(equation)
-        except Exception as e:
-            print(f"error type: {type(e)}", flush=True)
-            print(f"error message: {e}", flush=True)
-            return jsonify({"error": str(e)}), 400
+        for i in equation:
+            if equation[i] != "=":
+                clean_equation += equation[i].strip()
+                previous_value = equation[i].strip()
+            elif equation[i] == "=":
+                has_equals = True
+                left_side = clean_equation
+                clean_equation = ""
+
+        if has_equals:
+            right_side = clean_equation
+            try:
+                expr = Eq(left_side, right_side)
+            except Exception as e:
+                print(f"error type: {type(e)}", flush=True)
+                print(f"error message: {e}", flush=True)
+                return jsonify({"error": str(e)}), 400
+
+
+        if not has_equals:
+            try:
+                #convert the string into a sympy expression
+                expr = sympify(equation)
+            except Exception as e:
+                print(f"error type: {type(e)}", flush=True)
+                print(f"error message: {e}", flush=True)
+                return jsonify({"error": str(e)}), 400
 
         print("converted to expr")
 
@@ -62,8 +87,8 @@ def create_app() -> Flask:
                 return jsonify({"error": str(e)}), 400
 
         # check if we have an algebraic expression
-        elif expr.is_algebraic:
-            print("is algebraic")
+        elif expr.free_symbols != set():
+            print("has variables")
             symbol_set = expr.free_symbols
             symbol_list = list(symbol_set)
             try:
@@ -71,19 +96,6 @@ def create_app() -> Flask:
                 print("solution found")
                 print(str(solution))
 
-                return jsonify({"result": str(solution)})
-            except Exception as e:
-                print(f"error type: {type(e)}", flush=True)
-                print(f"error message: {e}", flush=True)
-                return jsonify({"error": str(e)}), 400
-
-        # check if its a polynomial equation
-        elif expr.is_polynomial():
-            print("is polynomial")
-            try:
-                solution = expr.all_roots()
-                print("solution found")
-                print(str(solution))
                 return jsonify({"result": str(solution)})
             except Exception as e:
                 print(f"error type: {type(e)}", flush=True)
