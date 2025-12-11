@@ -21,6 +21,7 @@ def create_app() -> Flask:
     @app.get("/solve")
     def solve_equation():
         equation = (request.args.get("equation") or "").strip()
+        print(str(equation), flush=True)
         if not equation:
             return jsonify({"error": "Missing 'equation' query parameter"}), 400
 
@@ -36,22 +37,21 @@ def create_app() -> Flask:
         right_side = ""
 
         for i in range(0, len(equation)):
-            match equation[i]:
-                case "=":
-                    if (equation[i].isnumeric() & previous_value.isalpha()) | (equation[i].isalpha() & previous_value.isnumeric()):
-                        clean_equation += "*"
-                    elif equation[i] == "^":
-                        clean_equation += "*"
-                        clean_equation += "*"
-                        previous_value = equation[i].strip()
-                        continue
-                    clean_equation += equation[i].strip()
-                    print(clean_equation)
+            if equation[i] != "=":
+                if (equation[i].isnumeric() & previous_value.isalpha()) | (equation[i].isalpha() & previous_value.isnumeric()):
+                    clean_equation += "*"
+                elif equation[i] == "^":
+                    clean_equation += "*"
+                    clean_equation += "*"
                     previous_value = equation[i].strip()
-                case "=":
-                    has_equals = True
-                    left_side = clean_equation
-                    clean_equation = ""
+                    continue
+                clean_equation += equation[i].strip()
+                print(clean_equation)
+                previous_value = equation[i].strip()
+            else:
+                has_equals = True
+                left_side = clean_equation
+                clean_equation = ""
 
         if has_equals:
             right_side = clean_equation
@@ -67,7 +67,7 @@ def create_app() -> Flask:
         else:
             try:
                 #convert the string into a sympy expression
-                expr = sympify(equation)
+                expr = sympify(clean_equation)
             except Exception as e:
                 print(f"error type: {type(e)}", flush=True)
                 print(f"error message: {e}", flush=True)
