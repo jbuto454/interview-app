@@ -36,42 +36,50 @@ def create_app() -> Flask:
         except TypeError:
             return jsonify({"error": "Invalid 'equation' query parameter"}), 400
 
+        print("converted to expr")
+
         if expr is None:
             return jsonify({"error": "Invalid 'equation' query parameter"}), 400
 
         #if the expression is just a number, return that number back
         if expr.is_number:
+            print("is number")
             return jsonify({"result": str(expr)})
 
         #if the expression is simple, meaning that it has no variables, we can solve it right away and return
-        if expr.expr_free_symbols == set():
+        if expr.free_symbols == set():
+            print("is simple expression")
             try:
                 solution = expr.evalf()
+                print("solution found")
                 return jsonify({"result": str(solution)})
             except NotImplementedError:
                 return jsonify({"error": "Equation cannot be solved"}), 400
 
         # check if we have an algebraic expression
         elif expr.is_algebraic:
-            symbol_set = expr.expr_free_symbols
+            print("is algebraic")
+            symbol_set = expr.free_symbols
             symbol_list = list(symbol_set)
             try:
                 solution = solve(expr, symbol_list, dict=True)
+                print("solution found")
                 return jsonify({"result": str(solution)})
             except NotImplementedError:
                 return jsonify({"error": "Equation cannot be solved"}), 400
 
         # check if its a polynomial equation
         elif expr.is_polynomial():
+            print("is polynomial")
             try:
                 solution = expr.allroots()
+                print("solution found")
                 return jsonify({"result": str(solution)})
             except NotImplementedError:
                 return jsonify({"error": "Equation cannot be solved"}), 400
 
-
-        return jsonify({"result": f"not implemented: solving '{equation}'"})
-
+        else:
+            return jsonify({"error": "Invalid 'equation' query parameter"}), 400
 
 
     @app.route("/", methods=["GET"])
