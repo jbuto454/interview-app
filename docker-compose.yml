@@ -13,6 +13,7 @@ services:
     environment:
       - PORT=8000
       - FLASK_APP=app
+      - PYTHONUNBUFFERED=1
     ports:
       - '8000:8000'
 

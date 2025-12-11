@@ -33,8 +33,10 @@ def create_app() -> Flask:
         try:
             #convert the string into a sympy expression
             expr = sympify(equation)
-        except TypeError:
-            return jsonify({"error": "Invalid 'equation' query parameter"}), 400
+        except Exception as e:
+            print(f"error type: {type(e)}", flush=True)
+            print(f"error message: {e}", flush=True)
+            return jsonify({"error": str(e)}), 400
 
         print("converted to expr")
 
@@ -52,9 +54,12 @@ def create_app() -> Flask:
             try:
                 solution = expr.evalf()
                 print("solution found")
+                print(str(solution))
                 return jsonify({"result": str(solution)})
-            except NotImplementedError:
-                return jsonify({"error": "Equation cannot be solved"}), 400
+            except Exception as e:
+                print(f"error type: {type(e)}", flush=True)
+                print(f"error message: {e}", flush=True)
+                return jsonify({"error": str(e)}), 400
 
         # check if we have an algebraic expression
         elif expr.is_algebraic:
@@ -64,19 +69,26 @@ def create_app() -> Flask:
             try:
                 solution = solve(expr, symbol_list, dict=True)
                 print("solution found")
+                print(str(solution))
+
                 return jsonify({"result": str(solution)})
-            except NotImplementedError:
-                return jsonify({"error": "Equation cannot be solved"}), 400
+            except Exception as e:
+                print(f"error type: {type(e)}", flush=True)
+                print(f"error message: {e}", flush=True)
+                return jsonify({"error": str(e)}), 400
 
         # check if its a polynomial equation
         elif expr.is_polynomial():
             print("is polynomial")
             try:
-                solution = expr.allroots()
+                solution = expr.all_roots()
                 print("solution found")
+                print(str(solution))
                 return jsonify({"result": str(solution)})
-            except NotImplementedError:
-                return jsonify({"error": "Equation cannot be solved"}), 400
+            except Exception as e:
+                print(f"error type: {type(e)}", flush=True)
+                print(f"error message: {e}", flush=True)
+                return jsonify({"error": str(e)}), 400
 
         else:
             return jsonify({"error": "Invalid 'equation' query parameter"}), 400
