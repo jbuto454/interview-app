@@ -19,7 +19,7 @@ def create_app() -> Flask:
         return response
 
     @app.get("/solve")
-    def solve():
+    def solve_equation():
         equation = (request.args.get("equation") or "").strip()
         if not equation:
             return jsonify({"error": "Missing 'equation' query parameter"}), 400
@@ -35,26 +35,36 @@ def create_app() -> Flask:
         left_side = ""
         right_side = ""
 
-        for i in equation:
-            if equation[i] != "=":
-                clean_equation += equation[i].strip()
-                previous_value = equation[i].strip()
-            elif equation[i] == "=":
-                has_equals = True
-                left_side = clean_equation
-                clean_equation = ""
+        for i in range(0, len(equation)):
+            match equation[i]:
+                case "=":
+                    if (equation[i].isnumeric() & previous_value.isalpha()) | (equation[i].isalpha() & previous_value.isnumeric()):
+                        clean_equation += "*"
+                    elif equation[i] == "^":
+                        clean_equation += "*"
+                        clean_equation += "*"
+                        previous_value = equation[i].strip()
+                        continue
+                    clean_equation += equation[i].strip()
+                    print(clean_equation)
+                    previous_value = equation[i].strip()
+                case "=":
+                    has_equals = True
+                    left_side = clean_equation
+                    clean_equation = ""
 
         if has_equals:
             right_side = clean_equation
             try:
-                expr = Eq(left_side, right_side)
+                print(left_side)
+                print(right_side)
+                expr = Eq(sympify(left_side), sympify(right_side))
             except Exception as e:
                 print(f"error type: {type(e)}", flush=True)
                 print(f"error message: {e}", flush=True)
                 return jsonify({"error": str(e)}), 400
 
-
-        if not has_equals:
+        else:
             try:
                 #convert the string into a sympy expression
                 expr = sympify(equation)
