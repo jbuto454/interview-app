@@ -22,21 +22,10 @@ def create_app() -> Flask:
 
         return_string = ""
 
-        if solution.isnumeric():
-            return str(solution)
+        for i in range(0, len(solution)):
 
-        else:
-            for i in range(0, len(solution)):
-                if i != 0:
-                    return_string += " , "
-
-                key = solution[i].keys()
-                value = solution[i].values()
-                return_string += str(key)
-                return_string += " "
-                return_string += "="
-                return_string += " "
-                return_string += str(value)
+            for var, val in solution[i].items():
+                return_string += str(var) + " = " + str(round(val.evalf(), 4)) + "\n"
 
         return return_string
 
