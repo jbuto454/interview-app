@@ -18,6 +18,29 @@ def create_app() -> Flask:
         response.headers["Access-Control-Allow-Headers"] = "Content-Type"
         return response
 
+    def pretty_solution(solution):
+
+        return_string = ""
+
+        if solution.isnumeric():
+            return str(solution)
+
+        else:
+            for i in range(0, len(solution)):
+                if i != 0:
+                    return_string += " , "
+
+                key = solution[i].keys()
+                value = solution[i].values()
+                return_string += str(key)
+                return_string += " "
+                return_string += "="
+                return_string += " "
+                return_string += str(value)
+
+        return return_string
+
+
     @app.get("/solve")
     def solve_equation():
         equation = (request.args.get("equation") or "").strip()
@@ -25,11 +48,6 @@ def create_app() -> Flask:
         if not equation:
             return jsonify({"error": "Missing 'equation' query parameter"}), 400
 
-        #A few things to think about:
-        #What if the user sends an invalid equation?
-        #What if the equation has no solution?
-        #What if there are multiple solutions?
-        #How should you format the result?
         clean_equation = ""
         previous_value = ""
         has_equals = False
@@ -43,7 +61,7 @@ def create_app() -> Flask:
                 elif equation[i] == "^":
                     clean_equation += "*"
                     clean_equation += "*"
-                    previous_value = equation[i].strip()
+                    previous_value = "*"
                     continue
                 clean_equation += equation[i].strip()
                 print(clean_equation)
@@ -52,6 +70,7 @@ def create_app() -> Flask:
                 has_equals = True
                 left_side = clean_equation
                 clean_equation = ""
+                previous_value = ""
 
         if has_equals:
             right_side = clean_equation
@@ -90,7 +109,7 @@ def create_app() -> Flask:
                 solution = expr.evalf()
                 print("solution found")
                 print(str(solution))
-                return jsonify({"result": str(solution)})
+                return jsonify({"result": pretty_solution(solution)})
             except Exception as e:
                 print(f"error type: {type(e)}", flush=True)
                 print(f"error message: {e}", flush=True)
@@ -106,7 +125,7 @@ def create_app() -> Flask:
                 print("solution found")
                 print(str(solution))
 
-                return jsonify({"result": str(solution)})
+                return jsonify({"result": pretty_solution(solution)})
             except Exception as e:
                 print(f"error type: {type(e)}", flush=True)
                 print(f"error message: {e}", flush=True)
