@@ -9,6 +9,101 @@ from flask import Flask, jsonify, request
 from sympy import *
 
 
+# make the solution easier to read for the user
+# ideally this would be done on the front-end, but for the purposes of this exercise I am doing this on the backend
+def pretty_solution(solution):
+    # initialize a string to return
+    return_string = ""
+    # loop through the solution list
+    for i in range(0, len(solution)):
+        # loop through each inner dictionary and extract the variable and associated value
+        for var, val in solution[i].items():
+            # concatenate the variable and simplify the associated value and round it if needed
+            return_string += str(var) + " = " + str(round(val.evalf(), 4)) + "\n"
+
+    return return_string
+
+
+# cleans the user input to account for common equation input error
+# for example, handles 'x2' and converts it to 'x*2'
+# also handles 'x^2' and converts it to 'x**2'
+def clean_user_input(equation):
+    # initialize all variables
+    clean_equation = ""
+    previous_value = ""
+    has_equals = False
+    left_side = ""
+    right_side = ""
+
+    # loops through the user input and fix common syntax issues
+    for i in range(0, len(equation)):
+        # for all char values besides '=', check if the user entered a value like 'x2' or '2x'
+        if equation[i] != "=":
+            if (equation[i].isnumeric() & previous_value.isalpha()) | (
+                    equation[i].isalpha() & previous_value.isnumeric()):
+                # if the user entered a value like 'x2' or '2x', then add a '*' between the chars
+                # will need to account for cases like 'sinx' in the future
+                clean_equation += "*"
+            # if the user entered the '^' char, then replace with '**'
+            elif equation[i] == "^":
+                clean_equation += "*"
+                clean_equation += "*"
+                previous_value = "*"
+                continue
+            # add the current char to the clean equation string
+            clean_equation += equation[i].strip()
+            print(clean_equation)
+            # set the previous value string to the current char, for the checks that will run on the next loop
+            previous_value = equation[i].strip()
+        # if the current char is '='
+        else:
+            # set the has_equals flag to true
+            # need to handle the double equals case
+            has_equals = True
+            # take the string in the clean_equation variable and set the left side of the equation
+            left_side = clean_equation
+            # clear the clean_equation and previous_value variables
+            clean_equation = ""
+            previous_value = ""
+
+    if has_equals:
+        right_side = clean_equation
+
+    #other cases that I would add to enhance this parser
+    # 1. handle equations that have two or more '=', '+','-', etc
+    # 2. handle users passing in strings like 'sinx'
+
+    return clean_equation, has_equals, left_side, right_side
+
+
+# extracts the expression object from the equation that was passed
+def extract_expression(equation):
+    # get the clean user input from the clean_user_input_function
+    clean_equation, has_equals, left_side, right_side = clean_user_input(equation)
+
+    # if the equation contains an equals sign, then set the right side of the equation
+    if has_equals:
+        try:
+            print(left_side)
+            print(right_side)
+            # build the full equation using the left and right sides
+            expr = Eq(sympify(left_side), sympify(right_side))
+
+        except Exception as e:
+            # return an error if the equation building fails
+            return None, e
+
+    # if the equation does not contain an equals sign, then use the sympify method to create the expr object
+    else:
+        try:
+            # convert the string into a sympy expression
+            expr = sympify(clean_equation)
+        except Exception as e:
+            return None, e
+
+    return expr, None
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
 
@@ -18,94 +113,6 @@ def create_app() -> Flask:
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type"
         return response
-
-    #make the solution easier to read for the user
-    #ideally this would be done on the front-end, but for the purposes of this exercise I am doing this on the backend
-    def pretty_solution(solution):
-        #initialize a string to return
-        return_string = ""
-        #loop through the solution list
-        for i in range(0, len(solution)):
-            #loop through each inner dictionary and extract the variable and associated value
-            for var, val in solution[i].items():
-                #concatenate the variable and simplify the associated value and round it if needed
-                return_string += str(var) + " = " + str(round(val.evalf(), 4)) + "\n"
-
-        return return_string
-
-    #cleans the user input to account for common equation input error
-    #for example, handles 'x2' and converts it to 'x*2'
-    #also handles 'x^2' and converts it to 'x**2'
-    def clean_user_input(equation):
-
-        #initialize all variables
-        clean_equation = ""
-        previous_value = ""
-        has_equals = False
-        left_side = ""
-        right_side = ""
-
-        #loops through the user input and fix common syntax issues
-        for i in range(0, len(equation)):
-            #for all char values besides '=', check if the user entered a value like 'x2' or '2x'
-            if equation[i] != "=":
-                if (equation[i].isnumeric() & previous_value.isalpha()) | (
-                        equation[i].isalpha() & previous_value.isnumeric()):
-                    #if the user entered a value like 'x2' or '2x', then add a '*' between the chars
-                    #will need to account for cases like 'sinx' in the future
-                    clean_equation += "*"
-                #if the user entered the '^' char, then replace with '**'
-                elif equation[i] == "^":
-                    clean_equation += "*"
-                    clean_equation += "*"
-                    previous_value = "*"
-                    continue
-                #add the current char to the clean equation string
-                clean_equation += equation[i].strip()
-                print(clean_equation)
-                #set the previous value string to the current char, for the checks that will run on the next loop
-                previous_value = equation[i].strip()
-            #if the current char is '='
-            else:
-                #set the has_equals flag to true
-                #need to handle the double equals case
-                has_equals = True
-                #take the string in the clean_equation variable and set the left side of the equation
-                left_side = clean_equation
-                #clear the clean_equation and previous_value variables
-                clean_equation = ""
-                previous_value = ""
-
-        return clean_equation, has_equals, left_side, right_side
-
-
-    #extracts the expression object from the equation that was passed
-    def extract_expression(equation):
-        #get the clean user input from the clean_user_input_function
-        clean_equation, has_equals, left_side, right_side = clean_user_input(equation)
-
-        #if the equation contains an equals sign, then set the right side of the equation
-        if has_equals:
-            right_side = clean_equation
-            try:
-                print(left_side)
-                print(right_side)
-                #build the full equation using the left and right sides
-                expr = Eq(sympify(left_side), sympify(right_side))
-
-            except Exception as e:
-                #return an error if the equation building fails
-                return None, e
-
-        #if the equation does not contain an equals sign, then use the sympify method to create the expr object
-        else:
-            try:
-                # convert the string into a sympy expression
-                expr = sympify(clean_equation)
-            except Exception as e:
-                return None, e
-
-        return expr, None
 
 
     @app.get("/solve")
