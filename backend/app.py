@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 import os
-import re
 from flask import Flask, jsonify, request
 from sympy import *
+import re
 
 
 # make the solution easier to read for the user
