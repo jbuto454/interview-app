@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 from flask import Flask, jsonify, request
 from sympy import *
 
@@ -51,18 +52,27 @@ def create_app() -> Flask:
                 if (equation[i].isnumeric() & previous_value.isalpha()) | (
                         equation[i].isalpha() & previous_value.isnumeric()):
                     #if the user entered a value like 'x2' or '2x', then add a '*' between the chars
+                    #will need to account for cases like 'sinx' in the future
                     clean_equation += "*"
+                #if the user entered the '^' char, then replace with '**'
                 elif equation[i] == "^":
                     clean_equation += "*"
                     clean_equation += "*"
                     previous_value = "*"
                     continue
+                #add the current char to the clean equation string
                 clean_equation += equation[i].strip()
                 print(clean_equation)
+                #set the previous value string to the current char, for the checks that will run on the next loop
                 previous_value = equation[i].strip()
+            #if the current char is '='
             else:
+                #set the has_equals flag to true
+                #need to handle the double equals case
                 has_equals = True
+                #take the string in the clean_equation variable and set the left side of the equation
                 left_side = clean_equation
+                #clear the clean_equation and previous_value variables
                 clean_equation = ""
                 previous_value = ""
 
@@ -71,18 +81,23 @@ def create_app() -> Flask:
 
     #extracts the expression object from the equation that was passed
     def extract_expression(equation):
-
+        #get the clean user input from the clean_user_input_function
         clean_equation, has_equals, left_side, right_side = clean_user_input(equation)
 
+        #if the equation contains an equals sign, then set the right side of the equation
         if has_equals:
             right_side = clean_equation
             try:
                 print(left_side)
                 print(right_side)
+                #build the full equation using the left and right sides
                 expr = Eq(sympify(left_side), sympify(right_side))
+
             except Exception as e:
+                #return an error if the equation building fails
                 return None, e
 
+        #if the equation does not contain an equals sign, then use the sympify method to create the expr object
         else:
             try:
                 # convert the string into a sympy expression
@@ -90,7 +105,7 @@ def create_app() -> Flask:
             except Exception as e:
                 return None, e
 
-        return expr
+        return expr, None
 
 
     @app.get("/solve")
@@ -100,17 +115,21 @@ def create_app() -> Flask:
         if not equation:
             return jsonify({"error": "Missing 'equation' query parameter"}), 400
 
+        # Only allow safe characters
+        if not re.match(r'^[0-9a-zA-Z\s\+\-\*/\^\(\)=\.]+$', equation):
+            return jsonify({"Invalid characters"}), 400
+
+        #convert the user input into an expr object using extract_expression
+        #also retrieve the error if there was any while extracting the expression
         expr, e = extract_expression(equation)
 
+        #if an error was found while extracting the expression, return it
         if expr is None:
             print(f"error type: {type(e)}", flush=True)
             print(f"error message: {e}", flush=True)
             return jsonify({"error": str(e)}), 400
 
         print("converted to expr")
-
-        if expr is None:
-            return jsonify({"error": "Invalid 'equation' query parameter"}), 400
 
         #if the expression is just a number, return that number back
         if expr.is_number:
@@ -121,6 +140,7 @@ def create_app() -> Flask:
         if expr.free_symbols == set():
             print("is simple expression")
             try:
+                #evaluate using the evalf expression
                 solution = expr.evalf()
                 print("solution found")
                 print(str(solution))
@@ -133,15 +153,19 @@ def create_app() -> Flask:
         # check if we have an algebraic expression
         elif expr.free_symbols != set():
             print("has variables")
+            #extract the symbols
             symbol_set = expr.free_symbols
+            #convert the symbols to a list
             symbol_list = list(symbol_set)
             try:
+                #try to solve the expressionusing the solve method
                 solution = solve(expr, symbol_list, dict=True)
                 print("solution found")
                 print(str(solution))
-
+                #return the result in a user friendly format if successful
                 return jsonify({"result": pretty_solution(solution)})
             except Exception as e:
+                #return the error if an error is raised
                 print(f"error type: {type(e)}", flush=True)
                 print(f"error message: {e}", flush=True)
                 return jsonify({"error": str(e)}), 400
