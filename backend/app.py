@@ -52,7 +52,6 @@ def clean_user_input(equation):
                 continue
             # add the current char to the clean equation string
             clean_equation += equation[i].strip()
-            print(clean_equation)
             # set the previous value string to the current char, for the checks that will run on the next loop
             previous_value = equation[i].strip()
         # if the current char is '='
@@ -84,8 +83,6 @@ def extract_expression(equation):
     # if the equation contains an equals sign, then set the right side of the equation
     if has_equals:
         try:
-            print(left_side)
-            print(right_side)
             # build the full equation using the left and right sides
             expr = Eq(sympify(left_side), sympify(right_side))
 
@@ -118,7 +115,6 @@ def create_app() -> Flask:
     @app.get("/solve")
     def solve_equation():
         equation = (request.args.get("equation") or "").strip()
-        print(str(equation), flush=True)
         if not equation:
             return jsonify({"error": "Missing 'equation' query parameter"}), 400
 
@@ -136,21 +132,15 @@ def create_app() -> Flask:
             print(f"error message: {e}", flush=True)
             return jsonify({"error": str(e)}), 400
 
-        print("converted to expr")
-
         #if the expression is just a number, return that number back
         if expr.is_number:
-            print("is number")
             return jsonify({"result": str(expr)})
 
         #if the expression is simple, meaning that it has no variables, we can solve it right away and return
         if expr.free_symbols == set():
-            print("is simple expression")
             try:
                 #evaluate using the evalf expression
                 solution = expr.evalf()
-                print("solution found")
-                print(str(solution))
                 return jsonify({"result": pretty_solution(solution)})
             except Exception as e:
                 print(f"error type: {type(e)}", flush=True)
@@ -159,7 +149,6 @@ def create_app() -> Flask:
 
         # check if we have an algebraic expression
         elif expr.free_symbols != set():
-            print("has variables")
             #extract the symbols
             symbol_set = expr.free_symbols
             #convert the symbols to a list
@@ -167,8 +156,6 @@ def create_app() -> Flask:
             try:
                 #try to solve the expressionusing the solve method
                 solution = solve(expr, symbol_list, dict=True)
-                print("solution found")
-                print(str(solution))
                 #return the result in a user friendly format if successful
                 return jsonify({"result": pretty_solution(solution)})
             except Exception as e:
